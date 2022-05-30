@@ -1,0 +1,271 @@
+---
+title: "708 Final"
+author: "Huiyue Li"
+output: pdf_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
+```
+
+```{r}
+library(tidyverse)
+library(gsDesign)
+library(tableone)
+library(kableExtra)
+library(survival)
+```
+
+## Question 1  
+  
+### (a)  
+The hazard rate for arm B is $\frac{log(2)}{14.5}$, and the hazard ratio for arm A over arm B is $\frac{1}{1+0.54}=\frac{1}{1.54}$. 
+```{r}
+nSurv(alpha = 0.05,beta = 0.1,sided = 2,ratio = 1,minfup = 18,hr=1/1.54,T=42)
+```
+Given the output, the required number of events is 225, and the sample size for testing P1 as a fixed sample size design is 335.
+
+<br>
+
+### (b)  
+The critical values of the two boundaries, the maximum sample size, and the average sample size under $H_0$ and $H_a$ can be shown in the below table.
+
+```{r}
+fp1=gsSurv(k=4,timing = 1,test.type = 4,alpha = 0.025,beta = 0.10,
+          sfu =sfHSD,sfupar = -4,sfl=sfHSD,sflpar = -2, 
+          lambdaC = log(2)/14.5,ratio = 1,minfup = 18,hr=1/1.54,T=42)
+```
+The maximum sample size is 364. Then the average sample size under $H_0$ can be calculated based on the crossing probability.
+```{r}
+a1=364/4*(0.0008+0.2644)+2*364/4*(1-0.0008-0.2644)*(0.0022+0.3898)+
+  3*364/4*(1-0.0008-0.2644)*(1-0.0022-0.3898)*(0.0059+0.2400)+
+  364*(1-0.0008-0.2644)*(1-0.0022-0.3898)*(1-0.0059-0.2400)
+a1
+```
+
+Therefore, the average sample size under $H_a$ can be calculated based on the crossing probability.
+```{r}
+a2=364/4*(0.0715+0.0102)+2*364/4*(1-0.0715-0.0102)*(0.2710+0.0167)+
+  3*364/4*(1-0.0715-0.0102)*(1-0.2710-0.0167)*(0.3526+0.0276)+
+  364*(1-0.0715-0.0102)*(1-0.2710-0.0167)*(1-0.3526-0.0276)
+a2
+```
+
+
+```{r}
+row1=c("Critical Value","IA1","IA2","IA3","Final","Number","Sample size","Number of Events")
+row2=c("","","","","","Maximum","364","245")
+row3=c("Lower bound","-0.63","0.36","1.20","2.01","Average under null hypothesis","230","133")
+row4=c("Upper bound","3.16","2.82","2.44","2.01","Average under alternative hypothesis","271","172")
+RT=rbind(row2,row3,row4)
+colnames(RT)=row1
+RT%>%kbl("latex",align = "l",row.names = F,
+caption = "The results of group sequential design",
+longtable=T,booktabs = T, linesep = "")%>%
+kable_styling(latex_options = "repeat_header")
+
+```
+
+
+<br>
+
+### (c) 
+Given **(b)**, we set the accrual rate as 15.15 patients per month.  
+```{r}
+lamc=log(2)/14
+#For ArmB
+e1=eEvents(lambda = lamc,
+        gamma =15.15,R=24,minfup = 18,T = 42)
+e1
+#For ArmA
+e2=eEvents(lambda = lamc/1.3,
+        gamma =15.15,R=24,minfup = 18,T = 42)
+e2
+#277+244=521
+power=nEvents(alpha = 0.05,sided = 2,ratio = 1,n=521,hr=1/1.3)
+power
+```
+The actual power that the trial has to detect the alternative hypothesis for P2 with the expected number of events under the accrual time, the study duration and the accrual rate determined in (b) is `r {"84.95%"}`. Thus, we conclude the trial has at least 80% power to test P2 at the final analysis.
+
+
+<br>
+
+
+### (d)
+(1) Study design  
+This is a phase III, randomized, two-arms including concurrent active-control study to assess the new immunotherapy compared to the standard chemotherapy as the concurrent active control for untreated metastatic non-small cell lung cancer (NSCLC) patients.  
+
+(2) Study objective and endpoints  
+The primary objective is to determine the the efficacy of a new immunotherapy (arm A) compared with standard chemotherapy (arm B) for untreated metastatic non-small cell lung cancer (NSCLC) patients.  
+The two primary endpoints are (i) Overall survival among the high risk group (PD-L1 level $\ge 50\%$) ; (ii) Overall survival among all randomized patients (PD-L1 level $\ge 1\%$)   
+(3) Study hypotheses  
+The null hypothesis: The overall survival of patients taking the new immunotherapy does not differ from which of patients taking the standard chemotherapy.  
+The alternative hypothesis: The overall survival of patients taking the new immunotherapy is higher than which of patients taking the standard chemotherapy.  
+(4) Study sample size  
+This study applies stratified permuted block randomization, which is stratified by the four covariates at baseline, including PD-L1 group, age group, histology and performance status. And there are five assumptions for sample size calculation, including exponential hazards for the two treatments, uniform accrual for eligible patients, approximately 50% randomized patients have PD-L1 level$\ge 50\%$ , and all randomized patients are followed from enrollment to final analysis. Given the equal treatment allocation and specific conditions, for the primary endpoint 1, the required number of events and the required number of randomized patients can be obtained by $gsDesign::nSurv()$. For the primary endpoint 2, the required number of events and the required number of randomized patients can be obtained by $gsDesign::eEvents$ with the certain accrual rate and unknown power, like determining it from primary endpoint 1. The total accrual time is 24 months, the minimum follow-up is 18 months, and study duration is 42 months.  
+(5) Interim analysis plan  
+This study would contain three interim analyses and one final analysis for primary objective 1 given the group sequential design theory. Early stopping for superiority and futility is accepted in the study. The four analyses are equally spaced on information scale, and the upper boundary (superiority) is an O'Brien-Fleming-like boundary with alpha spending, the lower boundary (futility) has similar shape with beta spending.
+
+
+
+<br>
+
+## Question 2  
+
+```{r}
+final=read.csv("Q2final.csv")
+```
+
+
+### (a) 
+Given the data, we have
+```{r,results='hide'}
+final_t=CreateTableOne(vars = c("age","ps","squam","elg","weightloss",
+                                "white","male","pdl1","pdl1high"), 
+                          strata = c("arm"),
+                          data = final, 
+                          factorVars = c("ps","squam","elg","weightloss",
+                                         "white","male","pdl1high"))
+final_t1=as.data.frame(print(final_t,showAllLevels = T))
+colname=c("Variables","Levels","Arm A (n=301)","Arm B (n=269)")
+rowname=c("Age (SD)","Performance status (%)"," ","Histolohy (%)"," ",
+          "Patient eligibility (%)"," ","Weight loss (%)"," ","Race (%)",
+          " ","Gender (%)","","PD-L1 level (SD)", "PD-L1 level groups (%)"," ")
+level=c(" ","Good PS","Poor PS","Non-Squamous","Squamous","Ineligible",
+        "Eligible","Weight loss>=5%","Weight loss<5%","Non-white",
+        "White","Female","Male"," ","PD-L1 level<50%","PD-L1>=50%")
+```
+
+
+```{r}
+FT=final_t1[2:17,2:3]
+FT=FT%>%select("1","0")
+FT1=cbind(rowname,level,FT)
+colnames(FT1)=colname
+FT1%>%kbl("latex",align = c("l","l","c","c"),row.names = F,
+caption = "The distribution of baseline covariates by study arms",
+longtable=T,booktabs = T, linesep = "")%>%
+kable_styling(latex_options = "repeat_header")%>%
+footnote(general = c("1. The colume 3-4 show frequencies (percentages)
+for categorical variables, and mean(SD) for continuous variables;",
+"2. There are 52/12/7 missing values in Weight loss/Performance status/Patient eligibility variables"),
+escape=F)
+```
+We can find except the variable **Race**, other baseline covarites are nearly balance across study arm.
+
+<br>
+
+### (b)
+**P1**
+For K-M Plot,  
+```{r}
+final1=final%>%mutate(age1=ifelse(age<60,0,1))%>%filter(pdl1high==1)
+km1=survfit(Surv(ostime,oscens)~arm,data = final1)
+```
+<br>
+
+For stratified Cox PH models,
+```{r}
+fit1=coxph(Surv(ostime,oscens)~arm+strata(age1)+strata(ps)+
+             strata(squam),data = final1)
+summary(fit1)
+```
+
+<br>
+
+For stratified logrank test,
+```{r}
+survdiff(Surv(ostime,oscens)~arm+strata(age1)+strata(ps)+
+           strata(squam),data = final1)
+```
+
+
+**P2**
+For K-M Plot,  
+```{r}
+km2=survfit(Surv(ostime,oscens)~arm,data = final)
+
+```
+<br>
+
+For stratified Cox PH models,
+```{r}
+final2=final%>%mutate(age1=ifelse(age<60,0,1))
+fit2=coxph(Surv(ostime,oscens)~arm+strata(age1)+strata(ps)+
+             strata(squam)+strata(pdl1high),data = final2)
+summary(fit2)
+
+```
+
+
+For stratified logrank test,
+```{r}
+survdiff(Surv(ostime,oscens)~arm+strata(age1)+strata(ps)+
+           strata(squam)+strata(pdl1high),data = final2)
+```
+
+Thus,  
+**(1)** The K-M curves for P1 is  
+```{r}
+plot(km1,lty=1:2,col=1:2,lwd=2,ylab = "Survival rate",
+     xlab = "Time in month",main = "Figure 1: Kaplan-Meier Curves for P1")
+legend("topright",c("Arm B","Arm A"),lty=1:2,col=1:2)
+```
+
+The K-M curves for P2 is  
+```{r}
+plot(km2,lty=1:2,col=1:2,lwd=2,ylab = "Survival rate",
+     xlab = "Time in month",main = "Figure 2: Kaplan-Meier Curves for P2")
+legend("topright",c("Arm B","Arm A"),lty=1:2,col=1:2)
+```
+
+<br>
+
+**(2)** The point and interval estimates from stratified Cox PH models can be shown on the below table.
+```{r}
+r1=c("Test","Beta","Hazrd ratio","Lower bound of 95% CI of HR","Upper bound of 95% CI of HR")
+r2=c("P1","-0.4863","0.6149","0.4479","0.8443")
+r3=c("P2","-0.1297","0.8783","0.6864","1.1240")
+RT1=rbind(r2,r3)
+colnames(RT1)=r1
+RT1%>%kbl("latex",align = "l",row.names = F,
+caption = "The results of stratified Cox PH models for P1 and P2",
+longtable=T,booktabs = T, linesep = "")%>%
+kable_styling(latex_options = "repeat_header")
+```
+
+**(3)** And the p-values from stratified logrank tests for P1 is `r {0.002}`, for P2 is `r {0.3}`.
+
+
+<br>
+
+### (c)
+Here we treat the PD-L1 level as binary predictor.
+```{r}
+fit=coxph(Surv(ostime,oscens)~arm*pdl1high+strata(age1)+
+            strata(ps)+strata(squam)+strata(pdl1high),data = final2)
+summary(fit)
+
+```
+Given the p-value of interaction between treatment group and baseline PD-L1 level is much smaller than $0.05$, thus, the baseline PD-L1 level is a predictive marker in directing metastatic NSCLC patients to the new immunotherapy.  
+
+### (d)
+There was total 570 subjects in this trial. Even though there were 20 of them are ineligible, we still included them into our study given they all had been involved in randomization and principle of ITT. Based on the distribution of baseline covariates shown in *Table 2*, we could find except the race, the other variables were all nearly balanced between treatment groups.  
+  
+  
+Because the randomization was conducted with four stratified factors, we could use the stratified Cox PH models and stratified logrank tests to evaluate the effect of the immunotherapy
+on overall survival (OS) in the patients with PD-L1 level$\ge 50\%$  and in all randomized patients with controlling the family-wise type I error rate. Also, we could plot the Kaplan-Meier (KM) curves to graphically show the overall survival between two arms.   
+  
+    
+For patients with PD-L1 level$\ge 50\%$, we could easily find the Arm A (new immunotherapy) has higher survival rate than Arm B (standard chemotherapy) by KM plot (*Figure 1*). Also, given the $95\%$ confidence interval of HR obtained by stratified Cox PH model which did not include the null value ($1.0$), as well as the p-value of stratified logrank test which is $0.002<0.05$, therefore, we could have more evidence that the effect of the immunotherapy on OS is better than which of standard chemotherapy for patients with PD-L1 level$\ge 50\%$.  
+  
+    
+For all randomized patients with PD-L1 level$\ge 1\%$, we could find the Arm A (new immunotherapy) has just slightly higher survival rate than Arm B (standard chemotherapy) by KM plot (*Figure 2*). Then given the $95\%$ confidence interval of HR obtained by stratified Cox PH model which included the null value ($1.0$), as well as the p-value of stratified logrank test which is $0.3>0.05$, therefore, we could further present that the effect of the immunotherapy on OS did not differs from which of standard chemotherapy for patients with PD-L1 level$\ge 1\%$.  
+  
+    
+Moreover, by evaluating the interaction between treatment and baseline PD-L1 level using Cox
+PH models, we present the baseline PD-L1 level is a predictive marker in directing metastatic NSCLC patients to the new immunotherapy given the p-value of interaction term is much smaller than $0.05$.  
+  
+    
+Therefore, the effect of the immunotherapy on OS is better than which of standard chemotherapy for metastatic NSCLC patients with PD-L1 level$\ge 50\%$. Whereas, the effect of the immunotherapy on OS does not differ from which of standard chemotherapy for metastatic NSCLC patients with PD-L1 level$\ge 1\%$. And the baseline PD-L1 level is a predictive marker in directing metastatic NSCLC patients to the new immunotherapy.

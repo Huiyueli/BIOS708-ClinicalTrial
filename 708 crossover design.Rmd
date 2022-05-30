@@ -1,0 +1,137 @@
+---
+title: "708 HW4"
+author: "Huiyue Li"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message=FALSE,warning = FALSE)
+```
+
+### Question 1   
+  
+(1) The expectation of $\hat{\theta_1}$ is  
+$$E(\hat{\theta_1})=E\bigg( \frac {\sum^{n_A}_{i=1}(Y_{A1i}-Y_{A0i})}{n_A}-\frac {\sum^{n_B}_{i=1}(Y_{B1i}-Y_{B0i})}{n_B}\bigg)$$
+$=E\bigg(\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A1i}\bigg)-E\bigg(\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A0i}\bigg)-E\bigg(\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B1i}\bigg)+E\bigg(\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B0i}\bigg)$  
+$=(\mu_{A1}-\mu_{A0})-(\mu_{B1}-\mu_{B0})=\theta$
+Therefore, $\hat{\theta_1}$ is an unbiased estimator for $\theta$.
+
+The expectation of $\hat{\theta_2}$ is  
+$$E(\hat{\theta_2})=E\bigg( \frac {\sum^{n_A}_{i=1}Y_{A1i}}{n_A}-\frac {\sum^{n_B}_{i=1}Y_{B1i}}{n_B}\bigg)=E\bigg(\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A1i}\bigg)-E\bigg(\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B1i}\bigg)$$
+$$=\mu_{A1}-\mu_{B1}$$
+Given this is a RCT, the outcomes of treatment A and treatment B at baseline follow the same distribution, i.e., $\mu_{A0}=\mu_{B0}$. Then $E(\hat{\theta_2})=\mu_{A1}-\mu_{B1}=(\mu_{A1}-\mu_{A0})-(\mu_{B1}-\mu_{B0})=\theta$.
+Therefore, $\hat{\theta_2}$ is an unbiased estimator for $\theta$.
+
+<br>
+
+(2) Given all the conditions, $\sigma_{Ak}^2 \approx \sigma_{Bk}^2=\sigma^2$, and $corr(Y_{A1},Y_{A0})\approx corr(Y_{B1}-Y_{B0})=\rho$ $(-1\le\rho\le1)$,$Y_{Ak}$ and $Y_{Bk}$ are independent, so do different subjects.   
+$$Var(\hat{\theta_1})=Var\bigg( \frac {\sum^{n_A}_{i=1}(Y_{A1i}-Y_{A0i})}{n_A}-\frac {\sum^{n_B}_{i=1}(Y_{B1i}-Y_{B0i})}{n_B}\bigg)$$
+$=Var\bigg(\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A1i}-\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A0i}\bigg)+Var\bigg(\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B1i}-\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B0i}\bigg)$  
+$=\bigg(\frac1{n_{A}^2}\sum^{n_A}_{i=1}Var(Y_{A1i}-Y_{A0i})\bigg)+\bigg(\frac1{n_{B}^2}\sum^{n_B}_{i=1}Var(Y_{B1i}-Y_{B0i})\bigg)$
+$$\because Var(Y_{A1i}-Y_{A0i})=Var(Y_{A1i})+Var(Y_{A0i})-2*Cov(Y_{A1i},Y_{A0i})=\sigma^2+\sigma^2-2\rho\sqrt{\sigma^2*\sigma^2}=2\sigma^2-2\rho\sigma^2$$
+Similarly, $Var(Y_{B1i}-Y_{B0i})=2\sigma^2-2\rho\sigma^2$  
+$$Var(\hat{\theta_1})=(\frac1{n_A}+\frac1{n_B})(2\sigma^2-2\rho\sigma^2)$$
+Also, $Var(\hat{\theta_2})=Var\bigg( \frac {\sum^{n_A}_{i=1}Y_{A1i}}{n_A}-\frac {\sum^{n_B}_{i=1}Y_{B1i}}{n_B}\bigg)=Var\bigg(\frac{1}{n_A}\sum^{n_A}_{i=1}Y_{A1i}\bigg)+Var\bigg(\frac{1}{n_B}\sum^{n_B}_{i=1}Y_{B1i}\bigg)=(\frac1{n_A}+\frac1{n_B})\sigma^2$  
+If we need to get $Var(\hat{\theta_1})<Var(\hat{\theta_2})$, then  
+$$(\frac1{n_A}+\frac1{n_B})(2\sigma^2-2\rho\sigma^2)<(\frac1{n_A}+\frac1{n_B})\sigma^2$$
+$$1-\rho<\frac 1 2$$
+$$\rho>\frac 1 2$$
+Therefore, the condition for $Var(\hat{\theta_1})<Var(\hat{\theta_2})$ is $\frac 1 2 <\rho \le 1$.
+
+<br>
+
+(3) Advantages and Disadvantages:     
+`Advantage of using the change relative to baseline`:  **a)** Only when the baseline outcomes of two group follows the exactly same distribution or exactly $\mu_{A0}=\mu_{B0}$, then the $\theta_2$ is a unbiased estimator of $\theta$, otherwise, there might be slight bias for RCT. **b)** Including baseline, there will be more information for the study to use, and some result will be more precise. **c)** if $\frac 1 2 <\rho \le 1$, the $\theta_1$ (with the change relative to baseline) will be more efficient than $\theta_2$ (the post treatment outcome)  
+`Disadvantage`: Might be time-consuming to collect baseline data and to use the the change relative to baseline when comparing with using the post-treatment outcome as the endpoint to define treatment effect in RCTs.
+
+
+### Question 2 
+(1) $H_0:p_T-p_C \le-M_a$  
+    $H_a:p_T-p_C >-M_a$   
+The two-sided 95% CI for $p_T-p_C$ is
+$$\hat{p_T}-\hat{p_C}\pm Z_{1-\frac1 2*0.05}\sqrt{\frac{\hat{p_T}(1-\hat{p_T})}{n_T}+\frac{\hat{p_C}(1-\hat{p_C})}{n_C}}=[-0.05,0.01]$$
+```{r}
+pt=273/1300
+pc=299/1300
+ub=pt-pc+1.96*sqrt(((pt*(1-pt))/1300)+((pc*(1-pc))/1300))
+lb=pt-pc-1.96*sqrt(((pt*(1-pt))/1300)+((pc*(1-pc))/1300))
+```
+Since the lower bound of the 95% CI is larger than $-M_a (-0.06)$, therefore, we reject the null hypothesis. And there is non-inferiority of treatment T relative to treatment C.
+
+Because in this case, the test for the treatment effect corresponds to showing that the lower bound of the two-sided 95% confidence interval (equivalent to the lower bound of a one-sided 97.5% confidence interval) for T-C is larger than $-M_a$, i.e., a one-sided test with $\alpha=0.025$ is equivalent to a one tail of two-sided test with $\alpha=0.05$. Here, if the lower bound of the 95% CI is larger than $-M_a$, then we reject the $H_0$, otherwise, we accept the $H_0$.
+
+<br>
+
+(2) $H_0:log(OR) \le-M_b$  
+    $H_a:log(OR) >-M_b$   
+The two-sided 95% CI for $p_T-p_C$ is
+$$\hat{log(OR)}\pm Z_{1-\frac1 2*0.05}\sqrt{\frac1{n_{TR}}+\frac1{n_{TN}}+\frac1{n_{CR}}+\frac1{n_{CN}}}=[-0.30,0.07]$$
+where $n_{TR}=273$, $n_{TN}=1027$, $n_{CR}=299$, $n_{CN}=1001$ in this case.  
+```{r}
+log=log(273*1001/1027/299)
+ub1=log+1.96*sqrt(1/273+1/1027+1/299+1/1001)
+lb1=log-1.96*sqrt(1/273+1/1027+1/299+1/1001)
+```
+Since the lower bound of the 95% CI is smaller than $-M_b (-0.272)$, therefore, we accept the null hypothesis. And there is inferiority of treatment T relative to treatment C.
+
+Because in this case, the test for the treatment effect corresponds to showing that the lower bound of the two-sided 95% confidence interval (equivalent to the lower bound of a one-sided 97.5% confidence interval) for log(OR) is larger than $-M_b$, i.e., a one-sided test with $\alpha=0.025$ is equivalent to a one tail of two-sided test with $\alpha=0.05$. Here, if the lower bound of the 95% CI is larger than $-M_b$, then we reject the $H_0$, otherwise, we accept the $H_0$.
+
+<br>
+
+(3) Because for (1) and (2), the estimands ($p_T-p_C$ $v.s.$ $log(OR)$) and statistics we use to test non-inferiority are both different. Then we could find that using different transformations for response rates could lead us to get the different conclusion, therefore, choosing appropriate estimand is important in real world.  
+If I am the study statistician, I would choose the estimand given the study requirement or interest. If the study are with binary outcome, i.e., the study is to investigate the event rate, I would use the log odds ratio. But if the study is also to investigate the difference of event rates or something is not related to event rate, I would use the other estimand.
+
+<br>
+
+
+### Question 3   
+(1) Assuming $P_1=P_2$, $C_F=C_R$.  
+
+  Sequence | Period I | Period II 
+  :------: | :-----: | :-----: 
+  1 (RT) | $\mu_{11}=\mu+P_1+F_R$ | $\mu_{21}=\mu+P_2+F_T+C_R$ 
+  2 (TR) | $\mu_{12}=\mu+P_1+F_T$ | $\mu_{22}=\mu+P_2+F_R+C_T$ 
+
+    
+
+**(a)** $E(\bar Y_{12}-\bar Y_{11})=\mu_{12}-\mu_{11}=(\mu+P_1+F_T)-(\mu+P_1+F_R)=F_T-F_R$  
+  
+$\therefore \bar Y_{12}-\bar Y_{11}$ is an unbiased estimators for $\theta=F_T-F_R$.
+  
+
+**(b)** $E(\bar Y_{21}-\bar Y_{11})=\mu_{21}-\mu_{11}=(\mu+P_2+F_T+C_R)-(\mu+P_1+F_R)=F_T-F_R+C_R$  
+  
+$\therefore \bar Y_{21}-\bar Y_{11}$ is NOT an unbiased estimators for $\theta=F_T-F_R$.
+  
+
+**(c)** $E(\frac{1}{2}[(\bar Y_{12}-\bar Y_{21})+(\bar Y_{11}-\bar Y_{22})])=\frac{1}{2}(\mu_{12}-\mu_{21}+\mu_{11}-\mu_{22})=\frac{1}{2}[(\mu+P_1+F_T)-(\mu+P_2+F_T+C_R)+(\mu+P_1+F_R)-(\mu+P_2+F_R+C_T)]=-C_R$  
+  
+$\therefore \frac{1}{2}[(\bar Y_{12}-\bar Y_{21})+(\bar Y_{11}-\bar Y_{22})]$ is NOT an unbiased estimators for $\theta=F_T-F_R$.
+  
+**(d)** $E(\frac{1}{2}[(\bar Y_{12}-\bar Y_{11})+(\bar Y_{21}-\bar Y_{22})])=\frac{1}{2}(\mu_{12}-\mu_{11}+\mu_{21}-\mu_{22})=\frac{1}{2}[(\mu+P_1+F_T)-(\mu+P_1+F_R)+(\mu+P_2+F_T+C_R)-(\mu+P_2+F_R+C_T)]=F_T-F_R$  
+  
+$\therefore \frac{1}{2}[(\bar Y_{12}-\bar Y_{11})+(\bar Y_{21}-\bar Y_{22})]$ is an unbiased estimators for $\theta=F_T-F_R$.
+
+
+
+<br>
+
+
+(2) Suppose $\hat \theta_1=\bar Y_{12}-\bar Y_{11}$ and $\hat \theta_b=\frac{1}{2}[(\bar Y_{12}-\bar Y_{11})+(\bar Y_{21}-\bar Y_{22})]$.Different subjects are mutually independent.
+
+$$Var(Y_{ijk})=\sigma_s^2+\sigma_e^2$$   $$Cov(Y_{i1k},Y_{i2k})=E[(S_{ik}+e_{i1k})(S_{ik}+e_{i2k})]=\sigma_s^2$$  
+$$Corr(Y_{i1k},Y_{i2k})=\frac{\sigma_s^2}{\sigma_s^2+\sigma_e^2}=\rho$$.
+
+Then  
+  
+$$Var(\hat \theta_1)=Var(\bar Y_{12})+Var(\bar Y_{11})-2Cov(\bar Y_{12},\bar Y_{11})=\frac{\sigma_s^2+\sigma_e^2}{n_2}+\frac{\sigma_s^2+\sigma_e^2}{n_1}=(\frac{1}{n_1}+\frac{1}{n_2})*(\sigma_s^2+\sigma_e^2)$$  
+  
+$$Var(\hat \theta_b)=\frac{1}{4}Var[(\bar Y_{12}-\bar Y_{11})+(\bar Y_{21}-\bar Y_{22})]=\frac{1}{4}[Var(\bar Y_{12}-\bar Y_{22})+Var(\bar Y_{21}-\bar Y_{11})]$$
+
+$\because Var(\bar Y_{12}-\bar Y_{22})=Var(\bar Y_{12})+Var(\bar Y_{22})-2Cov(\bar Y_{12},\bar Y_{22})=\frac{\sigma_s^2+\sigma_e^2}{n_2}+\frac{\sigma_s^2+\sigma_e^2}{n_2}-2\frac{\sigma_s^2}{n_2}=\frac{2\sigma_e^2}{n_2}$  
+
+Similarly, $Var(\bar Y_{21}-\bar Y_{11})=\frac{2\sigma_e^2}{n_1}$  
+
+Therefore, $Var(\hat \theta_b)=\frac{1}{4}(\frac{2\sigma_e^2}{n_2}+\frac{2\sigma_e^2}{n_1})=\frac{\sigma_e^2}{2}(\frac{1}{n_1}+\frac{1}{n_2})<(\frac{1}{n_1}+\frac{1}{n_2})*(\sigma_s^2+\sigma_e^2)=Var(\hat \theta_1)$  
+
+Then the most efficient estimators among the unbiased estimators under (1) is (d) $\frac{1}{2}[(\bar Y_{12}-\bar Y_{11})+(\bar Y_{21}-\bar Y_{22})]$ ($\hat \theta_b$), and the efficiency ratio is $\frac{Var(\hat \theta_b)}{Var(\hat \theta_1)}=\frac{\sigma_e^2}{2(\sigma_s^2+\sigma_e^2)}=\frac{1-\rho}{2}$ $\bigg(\rho=\frac{\sigma_s^2}{\sigma_s^2+\sigma_e^2}\bigg)$.

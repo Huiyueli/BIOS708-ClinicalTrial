@@ -1,0 +1,228 @@
+---
+title: "708 HW5"
+author: "Huiyue Li"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = F,warning = F)
+```
+
+### Question 1  
+**(1)**  We define $MTD=d_3$ as correctly achieving the MTD for scenario 1 since $[0.33-0.03,0.33+0.03]$ contains $\theta_3$.
+```{r}
+
+# result of 1 iteration
+sim1=function(rate){
+  dat=data.frame(dose=1:5,npt=rep(0,length(rate)),ndlt=rep(0,length(rate)))
+  nextdose=1
+  while(nextdose %in% dat$dose){
+    lastdose=nextdose
+    ndlt=sum(rbinom(3,1,rate[lastdose]))
+    dat[lastdose,'npt']=dat[lastdose,'npt']+3
+    dat[lastdose,'ndlt']=dat[lastdose,'ndlt']+ndlt
+    nextdose=sim2(dat=dat,lastdose=lastdose)$nextdose
+  }
+  mtd=sim2(dat=dat,lastdose=lastdose)$mtd
+  list(dat=dat,mtd=mtd)
+}
+#next dose and mtd dertermine
+sim2=function(dat,lastdose){
+idx=which(dat$dose==lastdose)
+dlt=dat$ndlt[idx]
+pt=dat$npt[idx]
+mtd=NA
+if(pt==3){
+nextdose=ifelse(dlt==0,lastdose+1,ifelse(dlt>1,NA,lastdose))
+}
+if(pt==6){
+nextdose=ifelse(dlt>1,NA,lastdose+1)
+}
+if (dlt>1 | !(nextdose %in% dat$dose)){
+nextdose=NA #for nextdose=6
+mtd=ifelse(lastdose==1,NA,ifelse(dlt>1, lastdose-1,lastdose))
+}
+list(nextdose=nextdose,mtd=mtd)
+}
+#result for 5000 iteration and relevant result
+sim3=function(rate,seed,correct,below){
+set.seed(seed)
+fmtd=rep(0,5)
+pat=matrix(rep(0,25000),5,5000)
+DT=matrix(rep(0,25000),5,5000)
+  for (i in 1:5000) {
+S1=sim1(rate=rate)
+pat[,i]=S1$dat$npt
+DT[,i]=S1$dat$ndlt
+if (S1$mtd %in% S1$dat$dose){
+fmtd[S1$mtd]=fmtd[S1$mtd]+1
+}
+  }
+Expected_p=apply(pat,1,mean)
+Expected_d=apply(DT, 1, mean)
+P_cor_MTD=round(fmtd[correct]/5000,3)
+Tol_exp_DLT=round(sum(Expected_d),2)
+Tol_bel_MTD=round(sum(Expected_p[below]),2)
+Tol_trt=round(sum(Expected_p),2)
+list(probability=P_cor_MTD,expected_DLT=Tol_exp_DLT,Below_MTD=Tol_bel_MTD,Total_treated=Tol_trt)
+}
+
+
+#(1)
+Sen1=sim3(rate=c(0.1,0.2,0.3,0.4,0.5),seed=123,correct = 3,below = c(1,2))
+Sen1
+```
+(a) the probability of correctly achieving the MTD is `r {Sen1[[1]]}`  
+(b) the expected total number of patients experiencing DLT is `r {Sen1[[2]]}`   
+(c) the expected total number of patients treated at doses below the correct MTD is `r {Sen1[[3]]}`   
+(d) the expected total number of patients treated is `r {Sen1[[4]]}`  
+
+<br>
+  
+**(2)**    
+We define $MTD=d_5$ as correctly achieving the MTD for scenario 2 since $[0.33-0.03,0.33+0.03]$ contains $\theta_5$.  
+We define $MTD=d_2$ as correctly achieving the MTD for scenario 3 since $[0.33-0.03,0.33+0.03]$ contains $\theta_1,\theta_2$ and $\theta_2>\theta_1$.
+```{r}
+Sen2=sim3(rate=c(0.02,0.06,0.1,0.2,0.3),seed=123,correct = 5,below = c(1,2,3,4))
+Sen2
+```
+
+
+```{r}
+Sen3=sim3(rate=c(0.3,0.35,0.4,0.45,0.5),seed=123,correct = 2,below =1)
+Sen3
+```
+For Scenario 2, 
+(a) the probability of correctly achieving the MTD is `r {Sen2[[1]]}`  
+(b) the expected total number of patients experiencing DLT is `r {Sen2[[2]]}`   
+(c) the expected total number of patients treated at doses below the correct MTD is `r {Sen2[[3]]}`   
+(d) the expected total number of patients treated is `r {Sen2[[4]]}`.  
+For Scenario 3, 
+(a) the probability of correctly achieving the MTD is `r {Sen3[[1]]}`  
+(b) the expected total number of patients experiencing DLT is `r {Sen3[[2]]}`   
+(c) the expected total number of patients treated at doses below the correct MTD is `r {Sen3[[3]]}`   
+(d) the expected total number of patients treated is `r {Sen3[[4]]}`.   
+  
+<br>  
+  
+**(3)**      
+*Advantage*: `(i)` it has pre-tabulated/transparent rule. `(ii)` it is well understood by clinicians and investigators, as well as straightforward to implement. `(iii)` the expected total number of patients experiencing DLT is relatively small comparing with which of patients treated.  
+*Disadvantage*: `(i)` Given the the probability of correctly achieving the MTD under scenario 1-3, we can find that "3+3" method has low probability of correctly identifying MTD, and it often underestimate the MTD. `(ii)` Given the expected total number of patients treated at doses below the correct MTD and the expected total number of patients treated as well as experiencing DLT under scenario 1-3, we can find that many patients are likely to be treated at subtherapeutic doses, and not all toxicity data of all patients are used to determine the MTD.
+
+<br>
+
+### Question 2  
+```{r}
+library(UBCRM)
+help(Crm)
+data<- CreData(5)
+# BCRM aggressive, collect data firstly
+data<- updata(data,1,3,0)
+data<- updata(data,2,3,1)
+data<- updata(data,2,3,1)
+data
+#using CRM
+Crm(data,prior=c(0.1,0.15,0.25,0.35,0.45),target=0.3,nextlevel="ntarget",nptmax=24,nmaxmtd=6)
+# next dose is 3, but we do not reach the stopping rule, study continue
+# update after getting the experiment result
+data<- updata(data,3,3,2)
+data
+# next dose is NA because we have obtained the MTD now 
+# (reach the stopping rule, nmaxmtd=6),
+# and the posterior probability under MTD is closed to target level 
+Crm(data,prior=c(0.1,0.15,0.25,0.35,0.45),target=0.3,nextlevel="ntarget",nptmax=24,nmaxmtd=6)
+
+```
+We use *CreData* to create the raw data frame, and use *updata* to update the raw dataset with experimental data. Given BCRM is aggressive, we need to collect some data firstly at dose 1 and dose 2 before performing BCRM.   
+For the first BCRM, it returns the next dose level is 3 by applying the relevant algorithm, but now it does not reach any of the stopping rules (npmax=24 and nmaxmtd=6), here npmax is the maximum number of patients to include in the study and nmaxmtd is the maximum number of patients to be treated at the designated MTD, so the study continues and we have not obtained the recommended MTD.  
+With combining the experimental data under dose=3, we perform second BCRM, it recommends the MTD=2, and it stops because it reaches the stopping rule `nmaxmtd=6`, so the next dose is NA. Also, the posterior DLTs probabilities under dose=2 is closest to target toxicity level=0.3.  
+
+<br>
+
+**(2)** As Question, we define $MTD=d_3$ as correctly achieving the MTD for scenario 1 since $[0.33-0.03,0.33+0.03]$ contains $\theta_3$.
+```{r}
+CRM1=ssimCrm(prior = c(0.1, 0.2, 0.3, 0.4, 0.5),
+truerate = c(0.1, 0.2, 0.3, 0.4, 0.5),
+firstdose = 1,
+cohortsize = 3,
+approach = "bayes",
+model = "logistic",
+target = 0.33,
+nptmax = 30,
+n=5000,
+seed=123)
+CRM1
+#(a)-(d)
+CRM1_Pro=round(CRM1$data$recommendation[3]/100,2)
+CRM1_DLT=CRM1$mean.ndlt
+CRM1_bel=sum(CRM1$data$npt[1:2])
+CRM1_trt=CRM1$mean.npt
+```
+(a) The probability of correctly achieving the MTD is `r {round(CRM1$data$recommendation[3]/100,2)}`.  
+(b) The expected total number of patients experiencing DLT is `r {CRM1$mean.ndlt}`.  
+(c) The expected total number of patients treated at doses below the correct MTD is `r {sum(CRM1$data$npt[1:2])}`.  
+(d) The expected total number of patients treated is `r {CRM1$mean.npt}`.  
+
+<br>
+
+**(3)** As Question, we define $MTD=d_3$ as correctly achieving the MTD for scenario 1 since $[0.33-0.03,0.33+0.03]$ contains $\theta_3$.
+```{r}
+CRM2=ssimCrm(prior = c(0.2,0.3,0.35,0.4,0.45),
+truerate = c(0.1,0.2,0.3,0.4,0.5),
+firstdose = 1,
+cohortsize = 3,
+approach = "bayes",
+model = "logistic",
+target = 0.33,
+nptmax = 30,
+n=5000,
+seed=123)
+CRM2
+#(a)-(d)
+CRM2_Pro=round(CRM2$data$recommendation[3]/100,2)
+CRM2_DLT=CRM2$mean.ndlt
+CRM2_bel=sum(CRM2$data$npt[1:2])
+CRM2_trt=CRM2$mean.npt
+```
+(a) The probability of correctly achieving the MTD is `r {round(CRM2$data$recommendation[3]/100,2)}`.  
+(b) The expected total number of patients experiencing DLT is `r {CRM2$mean.ndlt}`.  
+(c) The expected total number of patients treated at doses below the correct MTD is `r {sum(CRM2$data$npt[1:2])}`.  
+(d) The expected total number of patients treated is `r {CRM2$mean.npt}`.  
+  
+<br>
+
+**(4)**  By comparing, we can find the below strength and weakness of the two design.  
+`"3+3" design`  
+*Strength*:  
+  
++ it has pre-tabulated/transparent rule.   
++ it is well understood by clinicians and investigators, as well as straightforward to implement.   
++ it is straightforward to implement.   
++ the expected total number of patients experiencing DLT is relatively small, i.e., a lower rate of DLTs and less likely to overdose.    
++ the required sample size is smaller.   
++ less time-consuming to run.  
+  
+*Weakness*:   
+  
++ with lower probability of correctly identifying MTD, and it often underestimate the MTD   
++ many patients are likely to be treated at subtherapeutic doses, and not all toxicity data of all patients are used to determine the MTD.    
+  
+`BCRM design`  
+*Strength*:    
+  
++ with higher probability of correctly identifying MTD, and treat more patients at the MTD 
++ Reduce the percentage of patients treated at low/ineffective dose level.
+  
+*Weakness*:   
+  
++ it has less transparent and difficult to understand by clinician, as well as more aggressive.   
++ the probability of correctly identifying MTD depends on the choice of the prior for $\theta_j$.  
++ less straightforward to implement and more time-consuming.   
++ the expected total number of patients experiencing DLT is relatively large, i.e., a higher rate of DLTs and more likely to overdose.   
++ the required sample size is greater.  
+  
+<br>
+  
+For phase I trial, when the toxicity of the product is not certain or the therapeutic window is narrow, or we are more care about safety issue, I recommend `"3+3" design`, whereas, if the expected toxicity of the product is small and the therapeutic window is wide, or we are more care about the correct identification of MTD and efficacy, I recommend `BCRM design`. Also, if possible, we can recommend modified CRM, like 2-stage CRM, which combined BCRM design and part of "3+3" design.  
+
+  

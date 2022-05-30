@@ -1,0 +1,132 @@
+---
+title: "708 HW3"
+author: "Huiyue Li"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = F,message = F)
+```
+
+## Question 1 Surrogate endpoint  
+(1)	For each of the following situations, briefly explain why S may or may not be a good surrogate endpoint trial for Y.  
+  
+**A**. Surrogate  Outcome S is not a good surrogate endpoint for Clinical Outcome Y, since it is not in the casual pathway between intervention and true clinical outcome, i.e., there is no effect of intervention on S and S cannot predict Y.  
+  
+**B**. Surrogate  Outcome S is a good surrogate endpoint for Clinical Outcome Y, since it satisfied the related requirement that S lies the causal pathway between intervention Z and the true clinical outcome Y, i.e., the effect of the intervention Z on S predicts the effect on the true clinical outcome Y.  
+  
+**C**. Surrogate  Outcome S is not a good surrogate endpoint for Clinical Outcome Y, since it is not in the casual pathway between intervention and true clinical outcome, i.e., there is no effect of intervention on S.  
+
+<br>
+
+(2)  
+The PE is `0.563`, which is much smaller than 1. And in model A, we can find that treatment Z does not have significant effect on surrogate outcome S; in model B, we can find that treatment Z does not have significant effect on true outcome T. Therefore, S is not a good surrogate endpoint for T.
+```{r}
+library(tidyverse)
+armd=read.csv("armd.csv")
+armd$Trt=ifelse(armd$Treat==1,1,0)
+#Model A
+Mol_A=lm(Diff24~Trt,armd)
+summary(Mol_A)
+#Model B
+Mol_B=lm(Diff52~Trt,armd)
+summary(Mol_B)
+#Model C
+Mol_C=lm(Diff52~Diff24,armd)
+summary(Mol_C)
+#Model D
+Mol_D=lm(Diff52~Diff24+Trt,armd)
+#PE
+PE=round((Mol_B$coefficients[2]-Mol_D$coefficients[3])/Mol_B$coefficients[2],3)
+names(PE)="PE"
+PE
+```
+
+<br>
+
+## Single group 1-stage and 2-stage designs:  
+(1)  
+Under $H_0$:
+$$PET(p)=Pr(x_1 \le3)=\sum^{3}_{x_1=0}\binom{16}{x_1}0.15^{x_1}0.85^{16-x_1}=0.790$$
+Under $H_A$:
+$$PET(p)=Pr(x_1 \le3)=\sum^{3}_{x_1=0}\binom{16}{x_1}0.4^{x_1}0.6^{16-x_1}=0.065$$
+```{r}
+PET0=pbinom(3,16,0.15)
+PETA=pbinom(3,16,0.4)
+```
+
+
+<br>
+
+(2) 
+The probability of rejecting $H_0$ (in stage 2) given $x_1$ (in stage 1) is $cp(x_1)=Pr(x_1+X_2>8|x_1)$. We sum $cp(x_1)$ over all possible $x_1 (>r_1; r_1=3)$ to obtain $Pr(reject \ H_0)$:  
+
+Under $H_0$, the overall probability of rejection is
+$$\rho(p_0)=\sum^{16}_{x_1=4}\left\{cp(x_1)\times binom(x_1,16,0.15)\right\}=0.034$$
+Under $H_A$, the overall probability of rejection is
+$$\rho(p_1)=\sum^{16}_{x_1=4}\left\{cp(x_1)\times binom(x_1,16,0.4)\right\}=0.903$$
+The actual type I error is $\rho(p_0)=0.034$, and the actual type II error is $1-\rho(p_1)=0.097$.
+
+```{r}
+rho=function(p){
+rho=0
+for (x1 in 4:16){
+rho1=(pbinom(16,16,p)-pbinom(8-x1,16,p))*dbinom(x1,16,p)
+rho=rho+rho1
+}
+return(rho)
+}
+
+#p0
+round(rho(0.15),3)
+#p1
+round(rho(0.4),3)
+```
+
+
+
+
+<br>
+
+(3)  
+The expected sample size for $p=0.15$  
+$$EN(p=0.15)=n_1+n_2(1-PET(p=0.15))=16+16*(1-0.790)=19.36$$
+The expected sample size for $p=0.4$  
+$$EN(p=0.4)=n_1+n_2(1-PET(p=0.4))=16+16*(1-0.065)=30.96$$
+```{r}
+EN0=16*(2-0.79)
+ENA=16*(2-0.065)
+```
+
+<br>
+
+(4)   
+Simon's optimal design is the design which with the smallest expected sample size under $H_0$. And Simon's minimax design is the design with the smallest maximal sample size n ($n=n_1+n_2$) inder $H_0$.  
+
+<br>
+
+(5)  
+```{r}
+library(clinfun)
+cl=ph2simon(pu=0.15,pa=0.4,ep1=0.1,ep2=0.1)
+cl
+head(cl$out,10)
+```
+The Simon's optimal design is the 2-stage design ($r_1=1,n_1=10,r=5,n=22$), and the Simon's minimax design is the 2-stage design ($r_1=2,n_1=15,r=5,n=21$). The 2-stage design studied in (1) and (2) is not the Simon's optimal or minimax design. Because its expected sample size is 19.36>15.47, and its maximal sample size is 32>21.
+
+<br>
+
+(6)   
+Type I error rate:  
+$$Pr(reject H_0|H_0)=\sum^{32}_{x=9}\binom{32}{x}0.15^{x}0.85^{32-x}=0.041$$
+Type II error rate:  
+$$Pr(accept H_0|H_A)=1-\sum^{32}_{x=9}\binom{32}{x}0.4^{x}0.6^{32-x}=0.057$$
+```{r}
+st11=pbinom(32,32,0.15)-pbinom(8,32,0.15)
+st12=1-pbinom(32,32,0.4)+pbinom(8,32,0.4)
+```
+
+<br>
+
+
+(7) Given **(2)** and **(6)**, we can find that the Type I error and Type II error are close. However, under $H_0$ is true, the 2-stage design trial will frequently stop at stage 1 given $PET(p_0)=0.790$, then there are fewer subjects enrolling in the trial than 1-stage design. Whereas, under $H_A$ is true, the 2-stage design trial always has the chance to start stage 2 trial $PET(p_a)=0.065$. Overall, the 2-stage design is more likely to reduce the expected sample size, especially under the $H_0$ is true.

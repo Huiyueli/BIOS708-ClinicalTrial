@@ -1,0 +1,268 @@
+---
+title: "708 HW2"
+author: "Huiyue Li"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = F,warning = F)
+```
+
+
+### Question 1 
+*Simple Randomization*  
+**(1)**
+```{r}
+set.seed(618)
+G=rbinom(50,1,0.5)
+#A=0 B=1
+t1=table(G)
+rownames(t1)=c("A","B")
+t1
+```
+The number of patients allocated to treatment A is 20, and to treatment B is 30.
+
+<br>
+
+**(2)**
+```{r}
+n_a=rep(NA,10000)
+for (i in 1:10000) {
+set.seed(i+1)
+G=rbinom(50,1,0.5)
+n_a[i]=table(G)[[1]]
+}
+length(which(n_a<=18 | n_a>=32))/10000
+```
+The probability that the simple randomization scheme yields an uneven treatment allocation as extreme as or more extreme than 18:32 for treatment A versus treatment B is `0.0668`.
+
+<br>
+
+**(3)**
+Assume the probability that the simple randomization scheme yields an uneven treatment allocation as extreme as or more extreme than 18:32 for treatment A versus treatment B is `p`. 
+$$p=\sum_{k=0}^{18}\binom{50}{k}*0.5^k*0.5^{50-k}+\sum_{k=32}^{50}\binom{50}{k}*0.5^k*0.5^{50-k}$$
+```{r}
+pnb=pbinom(18,50,0.5)+(1-pbinom(31,50,0.5))
+```
+
+By solving the formula, we get the `r {pnb}`.
+
+
+<br>
+
+**(4)** 
+For a simple randomization with equal allocation, we might find imbalance of the number of subjects between two arms (treatment). And the probability that the simple randomization scheme yields an uneven treatment allocation as extreme as or more extreme than 18:32 for treatment A versus treatment B is `r {pnb}`, which is closed to the probability when repeating the simple randomization with large times, such as 10,000 times. But in real world, it is impossible to repeat a trial with a large times such as 10,000 times to control the imbalance issue between study arms. Therefore, simple randomization is not great enough to ensure balance between arms.
+
+<br>
+
+
+### Question 2 
+*Stratified Permuted Block Randomization* 
+```{r,echo=F}
+library(tidyverse)
+```
+**(1)**  
+`(i)`
+```{r,eval=F}
+set.seed(9806)
+gender=sample(c('M','F'),200,replace = T,prob = c(0.5,0.5))
+age=sample(c("(40-50]","(50-60]","(60-70]","(70-80]"),200,replace = T,prob = c(0.15,0.2,0.4,0.25))
+ps=sample(c('0','1','2'),200,replace = T,prob = c(0.5,0.3,0.2))
+Pat=data.frame(gender,age,ps)
+set.seed(9898)
+Patient=Pat%>%mutate(t1=rbinom(200,1,0.5),trt=if_else(t1==0,"A","B")) #0 for A,1 for B
+```
+
+`(ii)`
+```{r,eval=F}
+for (i in 1:10000) {
+set.seed(i+1)
+gender=sample(c('M','F'),200,replace = T,prob = c(0.5,0.5))
+age=sample(c("(40-50]","(50-60]","(60-70]","(70-80]"),200,
+           replace = T,prob = c(0.15,0.2,0.4,0.25))
+ps=sample(c('0','1','2'),200,replace = T,prob = c(0.5,0.3,0.2))
+Pat=data.frame(gender,age,ps)
+set.seed(i+2)
+Patient=Pat%>%mutate(t1=rbinom(200,1,0.5),trt=if_else(t1==0,"A","B"))
+}
+
+```
+
+`(iii)`
+```{r,fig.width=8,fig.height=6}
+degree=rep(NA,10000)
+dg=rep(NA,10000)#for stratum
+set.seed(9806)
+for (i in 1:10000) {
+gender=sample(c('M','F'),200,replace = T,prob = c(0.5,0.5))
+age=sample(c("(40-50]","(50-60]","(60-70]","(70-80]"),200,replace = T,
+           prob = c(0.15,0.2,0.4,0.25))
+ps=sample(c('0','1','2'),200,replace = T,prob = c(0.5,0.3,0.2))
+trt=rbinom(200,1,0.5)
+Tb=table(trt)
+degree[i]=min(Tb)/max(Tb)
+str=trt[which(gender=="F" & age=="(70-80]" & ps==2)]
+dg[i]=min(sum(str==0),sum(str==1))/max(sum(str==0),sum(str==1))
+}
+#plot
+DEG=as.data.frame(degree)
+ggplot(DEG)+
+  geom_histogram(aes(x=degree,y=(..count..)/sum(..count..)),binwidth = 0.03,
+                 colour="black",fill="lightsteelblue3")+
+  xlab("Degree of treatment assignment balance")+
+  ylab("Proportion of the trial realizations")+
+ggtitle(
+"The proportion of the trial realizations over degree of treatment assignment balance"
+)+
+theme_bw()+
+  theme(axis.text=element_text(size=9),axis.title=element_text(size=9,face="bold"),
+        title = element_text(size = 9,face = "bold"))
+
+```
+
+`(iv)`
+```{r,fig.width=8,fig.height=6}
+#plot
+DEG1=as.data.frame(dg)
+ggplot(DEG1)+
+  geom_histogram(aes(x=dg,y=(..count..)/sum(..count..)),
+      binwidth=0.05,colour="black",fill="lightsteelblue3")+
+  xlab("Degree of treatment assignment balance")+
+  ylab("Proportion of the trial realizations")+
+ggtitle(
+"The proportion of the trial realizations over degree of treatment assignment balance within stratum"
+)+
+  theme_bw()+
+  theme(axis.text=element_text(size=9),axis.title=element_text(size=9,face="bold"),
+        title = element_text(size = 9,face = "bold"))
+
+```
+
+<br>
+
+**(2)**
+```{r,fig.width=8,fig.height=6}
+cmb=expand_grid(gender=c('M','F'),
+                age=c("(40-50]","(50-60]","(60-70]","(70-80]"),
+                ps=c(0,1,2))
+
+library(blockrand)
+degree_s=rep(NA,10000)
+dg_s=rep(NA,10000) #for stratum
+set.seed(9806)
+for (i in 1:10000) {
+gender=sample(c('M','F'),200,replace = T,prob = c(0.5,0.5))
+age=sample(c("(40-50]","(50-60]","(60-70]","(70-80]"),200,replace = T,
+           prob = c(0.15,0.2,0.4,0.25))
+ps=sample(c('0','1','2'),200,replace = T,prob = c(0.5,0.3,0.2))
+id=seq(1:200)
+n_str=rep(NA,24)
+for (j in 1:24) {
+n_str[j]=length(id[which(gender==cmb[[j,1]] & age==cmb[[j,2]] & ps==cmb[[j,3]])])
+}
+bl=NULL
+for (k in 1:24) {
+block=blockrand(n=n_str[k],
+                num.levels = 2,
+                levels=c("A","B"),
+                stratum=k,
+                block.sizes = 2)
+block1=block[1:n_str[k],]
+bl=rbind(bl,block1)
+}
+bl=na.omit(bl)
+degree_s[i]=min(sum(bl$treatment=="A"),sum(bl$treatment=="B"))/
+  max(sum(bl$treatment=="A"),sum(bl$treatment=="B"))
+
+#specific row (stratum=24 given cmb)
+bl1=bl[which(bl$stratum==24),]
+dg_s[i]=min(sum(bl1$treatment=="A"),sum(bl1$treatment=="B"))/
+  max(sum(bl1$treatment=="A"),sum(bl1$treatment=="B"))
+}
+```
+
+
+```{r,fig.width=8,fig.height=6}
+#plot for overall
+DEG_s=as.data.frame(degree_s)
+ggplot(DEG_s)+
+  geom_histogram(aes(x=degree_s,y=(..count..)/sum(..count..)),binwidth = 0.03,
+                 colour="black",fill="lightsteelblue3")+
+  xlab("Degree of treatment assignment balance")+
+  ylab("Proportion of the trial realizations")+
+ggtitle(
+"The proportion of the trial realizations over degree of treatment assignment balance",
+subtitle = "Stratified permuted block randomization")+
+  theme_bw()+
+  theme(axis.text=element_text(size=9),axis.title=element_text(size=9,face="bold"),
+        title = element_text(size = 9,face = "bold"))
+```
+
+
+```{r,fig.width=8,fig.height=6}
+DEG1_s=as.data.frame(dg_s)
+ggplot(DEG1_s)+
+  geom_histogram(aes(x=dg_s,y=(..count..)/sum(..count..)),binwidth = 0.05,
+                 colour="black",fill="lightsteelblue3")+
+  xlab("Degree of treatment assignment balance")+
+  ylab("Proportion of the trial realizations")+
+ggtitle(
+"The proportion of the trial realizations over degree of treatment assignment balance within stratum",
+        subtitle = "Stratified permuted block randomization")+
+  theme_bw()+
+  theme(axis.text=element_text(size=9),axis.title=element_text(size=9,face="bold"),
+        title = element_text(size = 9,face = "bold"))
+
+```
+
+
+<br>
+
+
+**(3)**  
+Given the above results, we can find that  
+  
+* Simple randomization:  
+    + Pros: (1) Easier and much faster to perform. (2) The rationale is easier to understand.
+    + Cons: (1) It is more likely to get the high degree of imbalance between treatment arms. And there is less probability to get the balance result between study arms than using block randomization. Imbalance will induce lower statistical power. Therefore, it might have lower statistical power than stratified permuted block randomization due to imbalance in this case.  (2) Simple randomization often leads to imbalance of treatment arms within combinations of these prognostic factors (stratum). For some strata, there might be imbalance, then there would be no exchangeability and no valid inference.  
+  
+* Stratified permuted block randomization:  
+    + Pros: (1) Stratified block randomization can further restrict the chance of imbalances to ensure the treatment groups are as alike as possible for selected prognostic variables or other patient factors.  (2) In this case, it is less likely to get the high degree of imbalance between treatment arms. And there is more probability to get the balance result between study arms with higher statistical power. (3) In each stratum, it is more likely to keep balance between two treatment arms. 
+    + Cons: (1) More time-consuming and complex to conduct. (2) When the sample size of each stratum is not the multiple of the block size, then it will lead the imbalance issue, especially for the stratum with small sample size. (3) The selection of stratification factors are pre-specified, which sometimes remains controversy.
+ 
+ 
+
+<br>
+
+### Question 3
+*Time shift of patient prognosis*  
+Given
+\begin{equation}
+\begin{split}
+E(\hat \theta)&= E(\hat \mu_A-\hat \mu_B)=E(\hat \mu_A)-E(\hat \mu_B)\\
+&= \tau_{A_1}\mu_{A_1}+ \tau_{A_2}\mu_{A_2}- \tau_{B_1}\mu_{B_1}- \tau_{B_2}\mu_{B_2}\\
+&= (\tau_{A_1}+\tau_{A_2})\mu_{A_1}+\tau_{A2}\delta_A- (\tau_{B_1}+\tau_{B_2})\mu_{B_1}- \tau_{B_2}\delta_B\\
+&= (\mu_{A_1}-\mu_{B_1})+ \delta_A \tau_{A_2} -\delta_B \tau_{B_2} \nonumber
+\end{split}
+\end{equation}
+
+(1) If there is no time shift, i.e., $\delta_A=\delta_B=0$, then
+$$E(\hat \theta)=(\mu_{A_1}-\mu_{B_1})+ \delta_A \tau_{A_2} -\delta_B \tau_{B_2}=\mu_{A_1}-\mu_{B_1}=\theta$$
+Therefore, $\hat \theta=\hat \mu_A-\hat\mu_B$ is a unbiased estimator for $\theta$.
+
+<br>
+
+(2) If the time shift is same for A and B, i.e., $\delta_A=\delta_B$, and the allocation ratio remains unchanged over time, i.e., $\tau_{A2}=\tau_{B2}$, then
+$$E(\hat \theta)=(\mu_{A_1}-\mu_{B_1})+ \delta_A \tau_{A_2} -\delta_B \tau_{B_2}=\mu_{A_1}-\mu_{B_1}=\theta$$
+Therefore, $\hat \theta=\hat \mu_A-\hat\mu_B$ is a unbiased estimator for $\theta$.
+
+<br>
+
+(3) Given the formulas shown above, we can find that only when $\delta_A \tau_{A_2} =\delta_B \tau_{B_2}$, then $E(\hat \theta)=\mu_{A_1}-\mu_{B_1}=\theta$, i.e., $\hat \theta=\hat \mu_A-\hat\mu_B$ is a unbiased estimator for $\theta$. Therefore, 
+
+* When $\tau_{A_2}\ne\tau_{B_2}$  (under RAR) and  $\delta_A=\delta_B$, then $E(\hat \theta)\ne \mu_{A_1}-\mu_{B_1}$
+* When $\delta_A\ne\delta_B$ (time shift of patient prognosis) and  $\tau_{A_2}=\tau_{B_2}$, then $E(\hat \theta)\ne \mu_{A_1}-\mu_{B_1}$   
+* Only when $\delta_A \tau_{A_2} =\delta_B \tau_{B_2}$, the $E(\hat \theta)=\mu_{A_1}-\mu_{B_1}=\theta$ holds.
+  
+Therefore, in general, if $\tau_{A_2}\ne\tau_{B_2}$ or $\delta_A\ne\delta_B$, then $E(\hat \theta)\ne\mu_{A_1}-\mu_{B_1}$,i.e.,$E(\hat \theta)\ne\theta$, so $\hat \theta=\hat \mu_A-\hat\mu_B$ is a biased estimator for $\theta$.
+
